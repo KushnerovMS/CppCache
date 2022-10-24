@@ -19,6 +19,8 @@ struct LRUC_t
         {
             KeyT key;
             T data;
+
+            Cache_elem_t_ (const KeyT& k, const T& d) : key(k), data(d) {}
         };
         std::list<Cache_elem_t_> cache_;
 
@@ -44,7 +46,7 @@ struct LRUC_t
                     cache_.pop_back();
                 }
 
-                cache_.push_front( Cache_elem_t_ { key, slow_get_page(key) } );
+                cache_.emplace_front( key, slow_get_page(key) );
                 hash_[key] = cache_.begin();
 
                 return false;
@@ -58,14 +60,15 @@ struct LRUC_t
                 return true;
         }
 
-        friend std::ostream& operator<< (std::ostream& stream, const LRUC_t<T, KeyT>& c)
+        void print (std::ostream& stream) const
         {
             stream << "[ ";
-            for (auto it = c.cache_.begin(); it != c.cache_.end(); ++ it)
+            for (auto it = cache_.begin(); it != cache_.end(); ++ it)
                 stream << it -> key << ' ';
             stream << "]";
-            return stream;
         }
 };
+    template<class T, class KeyT>
+    std::ostream& operator<< (std::ostream& stream, const LRUC_t<T, KeyT>& c) { c.print(stream); return stream; }
 
 } // namespace Cache

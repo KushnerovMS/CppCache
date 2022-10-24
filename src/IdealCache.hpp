@@ -19,6 +19,8 @@ struct Ideal_cache_t
             size_t pos_of_next;
             KeyT key;
             T data;
+
+            Cache_elem_t_ (const size_t& p, const KeyT& k, const T& d) : pos_of_next(p), key(k), data(d) {}
         };
         std::list<Cache_elem_t_> cache_;
 
@@ -29,6 +31,8 @@ struct Ideal_cache_t
         {
             size_t pos_of_next;
             KeyT key;
+
+            Request_t (const size_t& p, const KeyT& k) : pos_of_next(p), key(k) {}
         };
         std::list<Request_t> line_of_requests_;
 
@@ -47,7 +51,7 @@ struct Ideal_cache_t
                 if ( hit != temp_table.end() )
                     hit -> second -> pos_of_next = i;
                 
-                line_of_requests_.push_back( Request_t ({size_t(-1), item}) );
+                line_of_requests_.emplace_back( static_cast<size_t>(-1), item );
                 temp_table [item] = std::prev( line_of_requests_.end() );
 
                 i ++;
@@ -83,9 +87,9 @@ struct Ideal_cache_t
                 {
                     if (it == cache_.end() || it -> pos_of_next < req.pos_of_next )
                     {
-                        cache_.insert( it, Cache_elem_t_ ({ req.pos_of_next,
-                                                            req.key,
-                                                            slow_get_page(req.key) }) );
+                        cache_.emplace( it, req.pos_of_next,
+                                           req.key,
+                                           slow_get_page(req.key) );
 
                         hash_[req.key] = std::prev(it);
 
@@ -98,17 +102,19 @@ struct Ideal_cache_t
             
         }
 
-        friend std::ostream& operator<< (std::ostream& stream, const Ideal_cache_t<T, KeyT>& c)
+        void print (std::ostream& stream) const
         {
             stream << "[ ";
-            for (auto it = c.cache_.begin(); it != c.cache_.end(); ++ it)
+            for (auto it = cache_.begin(); it != cache_.end(); ++ it)
                 if (it -> pos_of_next != size_t(-1))
                     stream << "{" << it -> key << ", " << it -> pos_of_next << "} ";
                 else
                     stream << "{" << it -> key << ", " << "never"           << "} ";
             stream << "]";
-            return stream;
         }
 };
+
+    template<class T, class KeyT>
+    std::ostream& operator<< (std::ostream& stream, const Ideal_cache_t<T, KeyT>& c) { c.print(stream); return stream; }
 
 }// namespace Cache

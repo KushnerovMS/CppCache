@@ -30,6 +30,8 @@ int main ()
             hits += 1;
         }
 
+        std::cout << arc << std::endl;
+
         history_of_requests[i] = q;
     }
 

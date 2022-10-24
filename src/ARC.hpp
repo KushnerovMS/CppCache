@@ -28,6 +28,8 @@ struct ARC_t
             List_num_t_ list_num;
             KeyT key;
             DataIt dataIt;
+
+            List_elem_t_ (const List_num_t_& n, const KeyT& k, const DataIt& it) : list_num(n), key(k), dataIt(it) {}
         };
 
         using List_t = typename std::list<List_elem_t_>;
@@ -37,21 +39,23 @@ struct ARC_t
         List_t T2_;
         List_t B2_;
 
-        #define _GET_LIST_BY_NUM_(num)\
-            (num < B1_NUM) ?          \
-                (                     \
-                    (num == T1_NUM) ? \
-                        T1_           \
-                        :             \
-                        T2_           \
-                )                     \
-                :                     \
-                (                     \
-                    (num == B1_NUM) ? \
-                        B1_           \
-                    :                 \
-                        B2_           \
-                )
+        List_t& get_list_by_num_(List_num_t_ num)
+        {
+            if (num < B1_NUM) 
+            {
+                if (num == T1_NUM)
+                    return T1_;
+                else
+                    return T2_;
+            }
+            else
+            {
+                if (num == B1_NUM)
+                    return B1_;
+                else
+                    return B2_;
+            }
+        }
 
         size_t marker_ = 0;
 
@@ -110,7 +114,7 @@ struct ARC_t
                     replace(true);
                 }
 
-                T2_.splice (T2_.begin(), _GET_LIST_BY_NUM_(list_num), list_it);
+                T2_.splice (T2_.begin(), get_list_by_num_(list_num), list_it);
                 list_num = T2_NUM;
 
                 if (list_it -> dataIt == cache_.end())
@@ -123,8 +127,9 @@ struct ARC_t
 
                 return true;
             }
-            else                                // No exists
+            else    // No exists
             {
+                //free up space for new cache elem
                 if (T1_.size() + B1_.size() == size_)
                 {
                     if (T1_.size() < size_)
@@ -150,31 +155,35 @@ struct ARC_t
                     replace();
                 }
 
-                cache_.push_front (slow_get_page(key));
-                T1_.push_front (List_elem_t_ ({T1_NUM, key, cache_.begin()}));
+                //adding new elem in cache
+                cache_.push_front (slow_get_page(key));     
+                T1_.emplace_front (T1_NUM, key, cache_.begin());
                 hash_[key] = T1_.begin();
                 
                 return false;
             }
         }
 
-        friend std::ostream& operator<< (std::ostream& stream, const ARC_t<T, KeyT>& c)
+        void print (std::ostream& stream) const
         {
             stream << "[ ";
-            for (auto it = c.B1_.rbegin(); it != c.B1_.rend(); it ++)
+            for (auto it = B1_.rbegin(); it != B1_.rend(); it ++)
                 stream << it -> key << ' ';
             stream << "[ ";
-            for (auto it = c.T1_.rbegin(); it != c.T1_.rend(); it ++)
+            for (auto it = T1_.rbegin(); it != T1_.rend(); it ++)
                 stream << it -> key << ' ';
             stream << "! ";
-            for (auto it = c.T2_.begin(); it != c.T2_.end(); it ++)
+            for (auto it = T2_.begin(); it != T2_.end(); it ++)
                 stream << it -> key << ' ';
             stream << "] ";
-            for (auto it = c.B2_.begin(); it != c.B2_.end(); it ++)
+            for (auto it = B2_.begin(); it != B2_.end(); it ++)
                 stream << it -> key << ' ';
-            stream << "] " << c.marker_;
-            return stream;
+            stream << "] " << marker_ << std::endl;
         }
 };
+
+    template<class T, class KeyT>
+    std::ostream& operator<< (std::ostream& stream, const ARC_t<T, KeyT>& c) { c.print(stream); return stream; }
+
 
 } // namespace Cache
